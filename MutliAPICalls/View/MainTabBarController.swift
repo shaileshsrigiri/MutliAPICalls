@@ -10,27 +10,62 @@ import UIKit
 
 class MainTabBarController: UITabBarController {
 
+    private let endpoints = [
+        (APIEndpoints.photosURL, "Photos"),
+        (APIEndpoints.foodDataURL, "Food"),
+        (APIEndpoints.mealsURL, "Meals"),
+        (APIEndpoints.countriesURL, "Countries")
+    ]
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupTabBar()
+        validateAPIsSequentiallyAndSetupTabs()
     }
 
-    func setupTabBar() {
-        let PhotosVC = PhotosViewController()
-        let FoodGroupsTableVC = FoodGroupsTableViewController()
-        let mealsTableVC = MealsTableViewController()
-        let CountriesTableVC = CountriesTableViewController()
+    func validateAPIsSequentiallyAndSetupTabs() {
+        Task {
+            var validatedTabs: [UIViewController] = []
 
-        let firstNavVC = UINavigationController(rootViewController: PhotosVC)
-        let secondNavVC = UINavigationController(rootViewController: FoodGroupsTableVC)
-        let thirdNavVC = UINavigationController(rootViewController: mealsTableVC)
-        let fourthNavVC = UINavigationController(rootViewController: CountriesTableVC)
+            for (index, (url, title)) in endpoints.enumerated() {
+                do {
+                    _ = try await NetworkManager.shared.fetchData(from: url, decodingType: DummyResponse.self)
+                    let viewController = getViewController(for: index)
+                    let navVC = UINavigationController(rootViewController: viewController)
+                    navVC.tabBarItem = UITabBarItem(title: title, image: UIImage(systemName: "\(index + 1).circle"), tag: index)
+                    validatedTabs.append(navVC)
+                } catch {
+                    showErrorAlert(for: title, error: error)
+                    break
+                }
+            }
 
-        firstNavVC.tabBarItem = UITabBarItem(title: "Photos", image: UIImage(systemName: "1.fill.circle"), tag: 0)
-        secondNavVC.tabBarItem = UITabBarItem(title: "Food", image: UIImage(systemName: "2.fill.circle"), tag: 1)
-        thirdNavVC.tabBarItem = UITabBarItem(title: "Meals", image: UIImage(systemName: "3.fill.circle"), tag: 2)
-        fourthNavVC.tabBarItem = UITabBarItem(title: "Countries", image: UIImage(systemName: "4.fill.circle"), tag: 3)
+            DispatchQueue.main.async {
+                self.viewControllers = validatedTabs
+            }
+        }
+    }
 
-        viewControllers = [firstNavVC, secondNavVC, thirdNavVC, fourthNavVC]
+    private func getViewController(for index: Int) -> UIViewController {
+        switch index {
+        case 0: return PhotosViewController()
+        case 1: return FoodGroupsTableViewController()
+        case 2: return MealsTableViewController()
+        case 3: return CountriesTableViewController()
+        default: return UIViewController()
+        }
+    }
+
+    private func showErrorAlert(for tabName: String, error: Error) {
+        let alert = UIAlertController(
+            title: "API Error",
+            message: "Failed to load data for \(tabName) tab. Error: \(error.localizedDescription)",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        DispatchQueue.main.async {
+            self.present(alert, animated: true)
+        }
     }
 }
+
+struct DummyResponse: Codable {}

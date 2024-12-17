@@ -43,7 +43,7 @@ class PhotoDetailViewController: UIViewController {
 
         NSLayoutConstraint.activate([
 
-            imageView.heightAnchor.constraint(equalToConstant: 600),
+            imageView.heightAnchor.constraint(equalToConstant: 500),
             
             stackView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 5),
             stackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 5),
